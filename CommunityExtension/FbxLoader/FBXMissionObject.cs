@@ -1,23 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using TaleWorlds.Engine;
-using TaleWorlds.MountAndBlade;
-namespace CommunityExtension.FbxLoader
+using TaleWorlds.Library;
+
+namespace CommunityExtensions.FbxLoader
 {
-    public class FBXMissionObject : SynchedMissionObject
+    public class FBXMissionObject : ScriptComponentBehaviour
     {
         public string FileName;
-        protected override void OnPreInit()
+
+        protected override void OnInit()
         {
-            base.OnPreInit();
-            List<Mesh> meshes = FBXFileCache.GetByFileName(Scene, FileName);
-            foreach(var mesh in meshes)
+            base.OnInit();
+        }
+
+        private bool initialized = false;
+        private int tick = 0;
+
+        protected override void OnTick(float dt)
+        {
+            base.OnTick(dt);
+            bool isLoading = !SubModule._instance.loaded;
+            if (!isLoading && !initialized)
             {
-                this.GameEntity.AddMesh(mesh);
-               
+                tick++;
+
+                if (tick > 10)
+                {
+                    List<Mesh> meshes = FBXFileCache.GetByFileName(Scene, BasePath.Name + FileName);
+                    // MetaMesh metaMesh = MetaMesh.CreateMetaMesh();
+                    /*  GameEntity ent = GameEntity.CreateEmpty(base.Scene, false);
+                      ent.SetGlobalFrame(this.GameEntity.GetGlobalFrame());
+                      */
+                    foreach (var mesh in meshes)
+                    {
+                        this.GameEntity.AddMesh(mesh, false);
+                        //        ent.AddMesh(mesh);
+                    }
+                    initialized = true;
+                }
             }
         }
     }

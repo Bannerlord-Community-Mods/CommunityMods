@@ -1,38 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TaleWorlds.Engine;
 using TaleWorlds.Library;
 
-namespace CommunityExtension.FbxLoader
+namespace CommunityExtensions.FbxLoader
 {
-    class FBXFileCache
+    internal class FBXFileCache
     {
         private static Dictionary<string, List<Mesh>> MeshListByFileName = new Dictionary<string, List<Mesh>>();
-        // if (prefab == null)
+
+
         public static List<Mesh> GetByFileName(Scene scene, string fileName)
         {
-            GameEntity prefab = GameEntity.CreateEmpty(scene, false);
-
-
-            prefab.EntityFlags |= EntityFlags.DontSaveToScene;
-
-            //prefab.AddMesh(Mesh.GetFromResource("order_arrow_a"), true);
-
-            //   prefab.SetVisibilityExcludeParents(true);
 
             if (MeshListByFileName.ContainsKey(fileName) == false)
             {
-
                 MeshListByFileName.Add(fileName, CreateMesh(fileName));
             }
             return MeshListByFileName[fileName];
-
         }
 
         private static List<(FbxWrapper.Mesh, FbxWrapper.Material[])> meshesFBX = new List<(FbxWrapper.Mesh, FbxWrapper.Material[])>();
+
         private static void WalkFBXTree(FbxWrapper.Node node)
         {
             if (node.Attribute != null && node.Attribute.Type == FbxWrapper.AttributeType.Mesh)
@@ -50,14 +39,15 @@ namespace CommunityExtension.FbxLoader
         {
             return new Vec3((float)vec3.X, (float)vec3.Y, (float)vec3.Z);
         }
+
         private static Vec2 fromFBX(FbxWrapper.Vector2 vec2)
         {
             return new Vec2((float)vec2.X, (float)vec2.Y);
         }
+
         private static List<Mesh> CreateMesh(string filename = "test.fbx")
         {
             List<Mesh> meshes = new List<Mesh>();
-            FbxWrapper.Manager wrapper = new FbxWrapper.Manager();
             var scene = FbxWrapper.Scene.Import(filename, -1);
             FbxWrapper.Node root = scene.RootNode;
             WalkFBXTree(root);
@@ -88,6 +78,7 @@ namespace CommunityExtension.FbxLoader
                                         ptr);
                                 vertexIndex += 3;
                                 break;
+
                             case 4:
                                 Mesh.AddTriangle(fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[0])),
                                         fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[1])),
@@ -107,15 +98,11 @@ namespace CommunityExtension.FbxLoader
                                     ptr);
                                 vertexIndex += 4;
                                 break;
-
                         }
-
                     }
-
                 }
                 foreach (FbxWrapper.Material material in Materialist)
                 {
-
                     Material mat = Material.GetDefaultMaterial().CreateCopy();
                     var diffuseList = material.TexturePaths(FbxWrapper.LayerElementType.TextureDiffuse);
                     var diffuse = diffuseList.Length > 0 ? diffuseList[0] : null;
@@ -127,7 +114,6 @@ namespace CommunityExtension.FbxLoader
                     var specular = specularList.Length > 0 ? specularList[0] : null;
                     if (!diffuse.IsStringNoneOrEmpty())
                     {
-
                         mat.SetTexture(Material.MBTextureType.DiffuseMap, Texture.CreateTextureFromPath(System.IO.Path.GetDirectoryName(diffuse), System.IO.Path.GetFileName(diffuse)));
                     }
                     if (!bump.IsStringNoneOrEmpty())
@@ -140,7 +126,6 @@ namespace CommunityExtension.FbxLoader
                     }
 
                     Mesh.SetMaterial(mat);
-
                 }
 
                 Mesh.ComputeNormals();
@@ -149,8 +134,6 @@ namespace CommunityExtension.FbxLoader
                 Mesh.UnlockEditDataWrite(ptr);
                 meshes.Add(Mesh);
             }
-
-
 
             meshesFBX.Clear();
             return meshes;
