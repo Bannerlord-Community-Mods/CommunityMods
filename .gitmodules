@@ -1,0 +1,2 @@
+[submodule "Dependencies/fbxwrapper"]
+	url = git@github.com:Bannerlord-Community-Mods/fbxwrapper-csharp.git
