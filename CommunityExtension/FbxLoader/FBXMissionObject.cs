@@ -26,14 +26,14 @@ namespace CommunityExtensions.FbxLoader
 
                 if (tick > 10)
                 {
-                    List<Mesh> meshes = FBXFileCache.GetByFileName(Scene, BasePath.Name + FileName);
+                    IEnumerable<Mesh> meshes = FBXFileCache.GetByFileName(Scene, BasePath.Name + FileName);
                     // MetaMesh metaMesh = MetaMesh.CreateMetaMesh();
                     /*  GameEntity ent = GameEntity.CreateEmpty(base.Scene, false);
                       ent.SetGlobalFrame(this.GameEntity.GetGlobalFrame());
                       */
                     foreach (var mesh in meshes)
                     {
-                        this.GameEntity.AddMesh(mesh, false);
+                        GameEntity.AddMesh(mesh, false);
                         //        ent.AddMesh(mesh);
                     }
                     initialized = true;

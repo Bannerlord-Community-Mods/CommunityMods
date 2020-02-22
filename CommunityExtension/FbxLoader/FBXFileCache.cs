@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TaleWorlds.Engine;
 using TaleWorlds.Library;
 
@@ -7,31 +8,31 @@ namespace CommunityExtensions.FbxLoader
 {
     internal class FBXFileCache
     {
-        private static Dictionary<string, List<Mesh>> MeshListByFileName = new Dictionary<string, List<Mesh>>();
+        private static readonly Dictionary<string, List<Mesh>> _meshListByFileName = new Dictionary<string, List<Mesh>>();
 
 
-        public static List<Mesh> GetByFileName(Scene scene, string fileName)
+        public static IEnumerable<Mesh> GetByFileName(Scene scene, string fileName)
         {
 
-            if (MeshListByFileName.ContainsKey(fileName) == false)
+            if (_meshListByFileName.ContainsKey(fileName) == false)
             {
-                MeshListByFileName.Add(fileName, CreateMesh(fileName));
+                _meshListByFileName.Add(fileName, CreateMesh(fileName));
             }
-            return MeshListByFileName[fileName];
+            return _meshListByFileName[fileName];
         }
 
-        private static List<(FbxWrapper.Mesh, FbxWrapper.Material[])> meshesFBX = new List<(FbxWrapper.Mesh, FbxWrapper.Material[])>();
+        private static readonly List<(FbxWrapper.Mesh, FbxWrapper.Material[])> MeshesFbx = new List<(FbxWrapper.Mesh, FbxWrapper.Material[])>();
 
-        private static void WalkFBXTree(FbxWrapper.Node node)
+        private static void WalkFbxTree(FbxWrapper.Node node)
         {
             if (node.Attribute != null && node.Attribute.Type == FbxWrapper.AttributeType.Mesh)
             {
-                meshesFBX.Add((node.Mesh, node.GetMaterials()));
+                MeshesFbx.Add((node.Mesh, node.GetMaterials()));
             }
-            int childs = node.GetChildCount();
-            for (int i = 0; i < childs; i++)
+            int children = node.GetChildCount();
+            for (int i = 0; i < children; i++)
             {
-                WalkFBXTree(node.GetChild(i));
+                WalkFbxTree(node.GetChild(i));
             }
         }
 
@@ -50,9 +51,10 @@ namespace CommunityExtensions.FbxLoader
             List<Mesh> meshes = new List<Mesh>();
             var scene = FbxWrapper.Scene.Import(filename, -1);
             FbxWrapper.Node root = scene.RootNode;
-            WalkFBXTree(root);
-            foreach ((FbxWrapper.Mesh mesh, FbxWrapper.Material[] Materialist) in meshesFBX)
+            WalkFbxTree(root);
+            Parallel.ForEach(MeshesFbx, (tuple) =>
             {
+                (FbxWrapper.Mesh mesh, FbxWrapper.Material[] Materialist) = tuple;
                 Mesh Mesh = Mesh.CreateMesh();
                 UIntPtr ptr = Mesh.LockEditDataWrite();
                 int numVertices = mesh.ControlPointsCount;
@@ -69,31 +71,31 @@ namespace CommunityExtensions.FbxLoader
                         {
                             case 3:
                                 Mesh.AddTriangle(fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[0])),
-                                        fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[1])),
-                                        fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[2])),
-                                        fromFBX(textcoords[vertexIndex]),
-                                        fromFBX(textcoords[vertexIndex + 1]),
-                                        fromFBX(textcoords[vertexIndex + 2]),
-                                        536918784U,
-                                        ptr);
+                                    fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[1])),
+                                    fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[2])),
+                                    fromFBX(textcoords[vertexIndex]),
+                                    fromFBX(textcoords[vertexIndex + 1]),
+                                    fromFBX(textcoords[vertexIndex + 2]),
+                                    536918784U,
+                                    ptr);
                                 vertexIndex += 3;
                                 break;
 
                             case 4:
                                 Mesh.AddTriangle(fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[0])),
-                                        fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[1])),
-                                        fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[2])),
-                                        fromFBX(textcoords[vertexIndex]),
-                                        fromFBX(textcoords[vertexIndex + 1]),
-                                        fromFBX(textcoords[vertexIndex + 2]),
-                                        536918784U,
-                                        ptr);
+                                    fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[1])),
+                                    fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[2])),
+                                    fromFBX(textcoords[vertexIndex]),
+                                    fromFBX(textcoords[vertexIndex + 1]),
+                                    fromFBX(textcoords[vertexIndex + 2]),
+                                    536918784U,
+                                    ptr);
                                 Mesh.AddTriangle(fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[0])),
                                     fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[2])),
                                     fromFBX(mesh.GetControlPointAt(polygons[polyidx].Indices[3])),
-                                     fromFBX(textcoords[vertexIndex]),
-                                        fromFBX(textcoords[vertexIndex + 2]),
-                                        fromFBX(textcoords[vertexIndex + 3]),
+                                    fromFBX(textcoords[vertexIndex]),
+                                    fromFBX(textcoords[vertexIndex + 2]),
+                                    fromFBX(textcoords[vertexIndex + 3]),
                                     536918784U,
                                     ptr);
                                 vertexIndex += 4;
@@ -101,6 +103,7 @@ namespace CommunityExtensions.FbxLoader
                         }
                     }
                 }
+
                 foreach (FbxWrapper.Material material in Materialist)
                 {
                     Material mat = Material.GetDefaultMaterial().CreateCopy();
@@ -133,9 +136,10 @@ namespace CommunityExtensions.FbxLoader
                 Mesh.RecomputeBoundingBox();
                 Mesh.UnlockEditDataWrite(ptr);
                 meshes.Add(Mesh);
-            }
+            });
+          
 
-            meshesFBX.Clear();
+            MeshesFbx.Clear();
             return meshes;
         }
     }
